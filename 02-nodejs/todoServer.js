@@ -41,9 +41,64 @@
  */
 const express = require('express');
 const bodyParser = require('body-parser');
+const crypto = require('crypto');
+let TODO = [];
+const NOTFOUND = '404NotFound';
 
 const app = express();
 
 app.use(bodyParser.json());
 
+app.get('/todos', (req, res) => {
+  res.status(200).json(TODO);
+});
+
+app.get('/todos/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const todoItem = TODO.find((todo) => todo.id === id);
+    if (todoItem) {
+      res.status(200).json(todoItem);
+    } else {
+      res.status(404).json(NOTFOUND);
+    }
+  } catch (error) {
+    res.status(400).json(error);
+  }
+});
+
+app.post('/todos', (req, res) => {
+  const id = crypto.randomUUID();
+  const { title, description } = req.body;
+  TODO.push({ title, description, id, completed: false });
+  res.status(201).json({ id });
+});
+
+app.put('/todos/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, description } = req.body;
+  const todo = TODO.find((todo) => todo.id === id);
+  if (!todo) {
+    res.status(404).json(NOTFOUND);
+  }
+  const newTodos = TODO.filter((todo) => todo.id !== id);
+  TODO = [...newTodos, { ...todo, title, description }];
+  res.status(200).json('updated');
+});
+
+app.delete('/todos/:id', (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    res.status(404).json(NOTFOUND);
+  }
+  const newTodos = TODO.filter((todo) => todo.id !== id);
+  TODO = [...newTodos];
+  return res.end();
+});
+
+app.use((req, res) => {
+  res.status(404).send();
+});
+
+app.listen(3001);
 module.exports = app;
